@@ -32,14 +32,10 @@ class MailBlaster:
             print(e)
             sys.exit(1)
 
-    def set_recivers(self, recivers):
-        """Set reciver data."""
-        self.recivers = recivers
-
-    def load_recivers(self, csv_file):
-        """Polulate recivers with data."""
+    def load_receivers(self, csv_file):
+        """Polulate receivers with data."""
         with open(csv_file, 'r') as f:
-            self.recivers = list(csv.DictReader(f, ['name', 'email']))
+            self.receivers = list(csv.DictReader(f, ['name', 'email']))
 
     def fmt(self, text, r):
         """Format the text with some information."""
@@ -52,8 +48,8 @@ class MailBlaster:
 
     def send(self, check_before_send=False, delay=0):
         """Send the emails."""
-        # recivers := [{name, email}, ...]
-        for r in self.recivers:
+        # receivers := [{name, email}, ...]
+        for r in self.receivers:
             msg = EmailMessage()
             msg['Subject'] = self.fmt(self.subject, r)
             msg['To'] = r['email']
@@ -75,33 +71,35 @@ class MailBlaster:
 
 def ok(txt=""):
     """Print the text and ask if it's correct."""
-    a = input(txt, '[Y/n]: ')
+    a = input(txt + ' [Y/n]: ')
     return a == "" or a == 'Y' or a == 'y'
 
 
 def main():
     """Run the program."""
-
     conf = configparser.ConfigParser()
     conf.read('settings.ini')
-
+    
     content = ""
-    with open(args.template, 'r') as f:
+    with open(conf['info']['template'], 'r') as f:
         content = f.read()
 
-
-    if (not ok(content)):
-        return
-
     me = {
-        'name': 'Filip Lindvall',
-        'email': 'sales@d.kth.se',
-        'phone': '0733211420'
+        'name': conf['me']['name'],
+        'email': conf['me']['email'],
+        'phone': conf['me'].get('phone', '')
     }
 
-    mb = MailBlaster(me, args.subject, content)
-    mb.auth('flindv', os.environ['mailpasswd'])
-    mb.load_recivers(args.recivers)
+    print(me)
+    print(content)
+
+    if (not ok('Looks good?')):
+        return
+
+
+    mb = MailBlaster(me, conf['info']['subject'], content)
+    mb.auth(conf['secret']['account'], conf['secret']['password'])
+    mb.load_receivers(conf['info']['receivers'])
     mb.send()
 
 
