@@ -1,0 +1,10 @@
+Hejsan {name}!
+
+Nu har vi äntligen fått vår auto mailer att fungera! Det kommer att underlätta vårt arbete :D
+Jag tror att vi har bra möjligheter i vår framtid!
+{email}
+
+Bästa hälsningar,
+{my_name}
+Näringslivsgruppen Datasektionen
+{my_phone}
