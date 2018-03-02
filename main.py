@@ -80,7 +80,7 @@ def main():
     conf = configparser.ConfigParser()
     conf.read('settings.ini')
     
-    content = ""
+    content = None
     with open(conf['info']['template'], 'r') as f:
         content = f.read()
 
@@ -91,11 +91,11 @@ def main():
     }
 
     print(me)
+    print()
     print(content)
 
     if (not ok('Looks good?')):
         return
-
 
     mb = MailBlaster(me, conf['info']['subject'], content)
     mb.auth(conf['secret']['account'], conf['secret']['password'])
