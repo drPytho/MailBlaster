@@ -1,9 +1,7 @@
 """Mail Blaster."""
 from email.message import EmailMessage
-import argparse
 import configparser
 import csv
-import os
 import smtplib
 import sys
 import time
@@ -32,19 +30,14 @@ class MailBlaster:
             print(e)
             sys.exit(1)
 
-    def load_receivers(self, csv_file):
+    def load_receivers(self, columns, csv_file):
         """Polulate receivers with data."""
         with open(csv_file, 'r') as f:
-            self.receivers = list(csv.DictReader(f, ['name', 'email']))
+            self.receivers = list(csv.DictReader(f, columns))
 
     def fmt(self, text, r):
         """Format the text with some information."""
-        return text.format(
-            name=r.get('name'),
-            email=r.get('email'),
-            my_name=self.sender.get('name'),
-            my_email=self.sender.get('email'),
-            my_phone=self.sender.get('phone'))
+        return text.format(**union_set(self.sender, r))
 
     def send(self, check_before_send=False, delay=0):
         """Send the emails."""
@@ -53,10 +46,10 @@ class MailBlaster:
             msg = EmailMessage()
             msg['Subject'] = self.fmt(self.subject, r)
             msg['To'] = r['email']
-            msg['From'] = self.sender['email']
+            msg['From'] = self.sender['me_email']
             cont = self.fmt(self.content, r)
             msg.set_content(cont)
-            mail_info = self.fmt('Sending mail to {name}, {email} from {my_email}', r)
+            mail_info = self.fmt('Sending mail to {name}, {email} from {me_email}', r)
             print(mail_info)
             if (check_before_send):
                 print()
@@ -68,6 +61,11 @@ class MailBlaster:
             self.smtp.send_message(msg)
             time.sleep(delay)
 
+def union_set(a, b):
+    t = {}
+    for k in a: t[k] = a[k]
+    for k in b: t[k] = b[k]
+    return t
 
 def ok(txt=""):
     """Print the text and ask if it's correct."""
@@ -79,16 +77,14 @@ def main():
     """Run the program."""
     conf = configparser.ConfigParser()
     conf.read('settings.ini')
-    
+
     content = None
-    with open(conf['info']['template'], 'r') as f:
+    with open(conf['mail']['template'], 'r') as f:
         content = f.read()
 
-    me = {
-        'name': conf['me']['name'],
-        'email': conf['me']['email'],
-        'phone': conf['me'].get('phone', '')
-    }
+    me = {}
+    for key in conf['me']:
+        me['me_' + key] = conf['me'][key]
 
     print(me)
     print()
@@ -97,9 +93,10 @@ def main():
     if (not ok('Looks good?')):
         return
 
-    mb = MailBlaster(me, conf['info']['subject'], content)
-    mb.auth(conf['secret']['account'], conf['secret']['password'])
-    mb.load_receivers(conf['info']['receivers'])
+    mb = MailBlaster(me, conf['mail']['subject'], content)
+    mb.auth(conf['server']['account'], conf['server']['password'])
+    mb.load_receivers(conf['mail']['columns'].split(','),
+                      conf['mail']['receivers'])
     mb.send()
 
 
