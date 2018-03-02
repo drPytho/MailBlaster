@@ -1,6 +1,7 @@
 """Mail Blaster."""
 from email.message import EmailMessage
 import argparse
+import configparser
 import csv
 import os
 import smtplib
@@ -49,7 +50,7 @@ class MailBlaster:
             my_email=self.sender.get('email'),
             my_phone=self.sender.get('phone'))
 
-    def send(self, delay=0):
+    def send(self, check_before_send=False, delay=0):
         """Send the emails."""
         # recivers := [{name, email}, ...]
         for r in self.recivers:
@@ -57,33 +58,37 @@ class MailBlaster:
             msg['Subject'] = self.fmt(self.subject, r)
             msg['To'] = r['email']
             msg['From'] = self.sender['email']
-            msg.set_content(self.fmt(self.content, r))
-            ok(self.fmt('Sending mail to {name}:{email} from {my_email}', r))
+            cont = self.fmt(self.content, r)
+            msg.set_content(cont)
+            mail_info = self.fmt('Sending mail to {name}, {email} from {my_email}', r)
+            print(mail_info)
+            if (check_before_send):
+                print()
+                print(cont)
+                print()
+                if (not ok('Looks good? ')):
+                    continue
+
             self.smtp.send_message(msg)
             time.sleep(delay)
 
 
-def ok(txt):
+def ok(txt=""):
     """Print the text and ask if it's correct."""
-    print(txt)
-    a = input('Looks good? [Y/n]: ')
+    a = input(txt, '[Y/n]: ')
     return a == "" or a == 'Y' or a == 'y'
 
 
 def main():
     """Run the program."""
 
-    parser = argparse.ArgumentParser(description='Do a MailBlast!')
-    parser.add_argument('-s', '--subject', help='Subject of email (can be foramted).')
-    parser.add_argument('-t', '--template',  help='Select template for mail.')
-    parser.add_argument('-r', '--recivers', help='A csv file with "name,email"')
+    conf = configparser.ConfigParser()
+    conf.read('settings.ini')
 
-    args = parser.parse_args()
-    print(args.subject)
-    
     content = ""
     with open(args.template, 'r') as f:
         content = f.read()
+
 
     if (not ok(content)):
         return
